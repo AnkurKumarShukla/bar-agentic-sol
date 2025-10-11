@@ -67,11 +67,12 @@ give respose what tool to call and get result from that tool. Just do what you c
     # Include agent name
     # agent_state.agent_name = "FinanceAgent"
 
-    # Add agent state to SupervisorState
-    state.agent_states.setdefault("FinanceAgent", []).append(agent_state)
+    # Add agent state to SupervisorState (flat array in sequential order)
+    state.agent_states.append(agent_state)
 
     # Update context for downstream use
-    state.context[f"FinanceAgent_step{len(state.agent_states['FinanceAgent'])}"] = agent_state.agent_output
+    agent_count = sum(1 for s in state.agent_states if s.agent_name == "finance_agent")
+    state.context[f"finance_agent_step{agent_count}"] = agent_state.agent_output
 
     # Clear current_task (supervisor will decide next)
     state.current_task = None

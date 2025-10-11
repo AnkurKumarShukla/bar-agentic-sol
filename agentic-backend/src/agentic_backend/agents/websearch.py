@@ -52,11 +52,13 @@ Your goal: Deliver accurate, detailed, and useful search results from the web.
     # Convert messages to structured AgentState
     agent_state = build_agent_state(result["messages"],agent_name="websearch_agent")
     # agent_state.agent_name = "websearchAgent"
-    # Add agent state to SupervisorState
-    state.agent_states.setdefault("WebSearchAgent", []).append(agent_state)
+
+    # Add agent state to SupervisorState (flat array in sequential order)
+    state.agent_states.append(agent_state)
 
     # Update context with latest output
-    state.context[f"WebSearchAgent_step{len(state.agent_states['WebSearchAgent'])}"] = agent_state.agent_output
+    agent_count = sum(1 for s in state.agent_states if s.agent_name == "websearch_agent")
+    state.context[f"websearch_agent_step{agent_count}"] = agent_state.agent_output
 
     # Clear current task (Supervisor will assign next)
     state.current_task = None

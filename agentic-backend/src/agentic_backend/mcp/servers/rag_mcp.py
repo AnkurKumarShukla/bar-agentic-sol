@@ -1,5 +1,6 @@
 from mcp.server.fastmcp import FastMCP
 import os
+import sys
 import glob
 import chromadb
 from openai import OpenAI
@@ -28,10 +29,10 @@ def setup_collection(collection_name="documents"):
     """Create or retrieve a ChromaDB collection."""
     try:
         collection = chroma_client.get_collection(name=collection_name)
-        print(f"Using existing collection: {collection_name}")
+        print(f"Using existing collection: {collection_name}", file=sys.stderr, flush=True)
     except:
         collection = chroma_client.create_collection(name=collection_name)
-        print(f"Created new collection: {collection_name}")
+        print(f"Created new collection: {collection_name}", file=sys.stderr, flush=True)
     return collection
 
 # -------------------- Add Documents --------------------
@@ -65,8 +66,8 @@ def add_documents(documents, collection_name="documents"):
         metadatas=metadatas,
         ids=ids
     )
-    
-    print(f"Added {len(documents)} documents to collection '{collection_name}'.")
+
+    print(f"Added {len(documents)} documents to collection '{collection_name}'.", file=sys.stderr, flush=True)
     return collection
 
 # -------------------- Semantic Search --------------------
@@ -93,27 +94,27 @@ def semantic_search(query, top_k=5, collection_name="documents"):
                 })
         return formatted_results
     except Exception as e:
-        print(f"Error during semantic search: {e}")
+        print(f"Error during semantic search: {e}", file=sys.stderr, flush=True)
         return []
 
 def query_documents(query, top_k=5, collection_name="documents"):
     """Query documents and print results."""
     results = semantic_search(query, top_k, collection_name)
-    
+
     if not results:
-        print("No results found.")
+        print("No results found.", file=sys.stderr, flush=True)
         return []
-    
-    print(f"\nFound {len(results)} results for query: '{query}'")
-    print("-" * 50)
-    
+
+    print(f"\nFound {len(results)} results for query: '{query}'", file=sys.stderr, flush=True)
+    print("-" * 50, file=sys.stderr, flush=True)
+
     for i, result in enumerate(results):
-        print(f"Result {i+1}:")
-        print(f"Similarity: {result['similarity']:.4f}")
-        print(f"Content: {result['content'][:300]}...")
-        print(f"Metadata: {result['metadata']}")
-        print("-" * 30)
-    
+        print(f"Result {i+1}:", file=sys.stderr, flush=True)
+        print(f"Similarity: {result['similarity']:.4f}", file=sys.stderr, flush=True)
+        print(f"Content: {result['content'][:300]}...", file=sys.stderr, flush=True)
+        print(f"Metadata: {result['metadata']}", file=sys.stderr, flush=True)
+        print("-" * 30, file=sys.stderr, flush=True)
+
     return results
 
 @mcp.tool()

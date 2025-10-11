@@ -39,13 +39,14 @@ async def news_sentiment_agent_node(state: SupervisorState) -> SupervisorState:
     agent_state = build_agent_state(result["messages"], agent_name="news_sentiment_agent")
 
     # Include agent name
-    agent_state.agent_name = "NewsSentimentAgent"
+    agent_state.agent_name = "news_sentiment_agent"
 
-    # Add agent state to SupervisorState
-    state.agent_states.setdefault("NewsSentimentAgent", []).append(agent_state)
+    # Add agent state to SupervisorState (flat array in sequential order)
+    state.agent_states.append(agent_state)
 
     # Update context for downstream use
-    state.context[f"NewsSentimentAgent_step{len(state.agent_states['NewsSentimentAgent'])}"] = agent_state.agent_output
+    agent_count = sum(1 for s in state.agent_states if s.agent_name == "news_sentiment_agent")
+    state.context[f"news_sentiment_agent_step{agent_count}"] = agent_state.agent_output
 
     # Clear current_task (supervisor will decide next)
     state.current_task = None

@@ -93,5 +93,7 @@ def fetch_news_sentiment(query: str, gl: str = "us") -> dict:
 
 
 if __name__ == "__main__":
-    print("[SERVER] Starting market sentiment MCP...", flush=True)
+    # Use stderr for logging to avoid breaking JSON-RPC on stdout
+    import sys
+    print("[SERVER] Starting market sentiment MCP...", file=sys.stderr, flush=True)
     app.run()

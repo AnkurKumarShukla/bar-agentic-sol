@@ -1,11 +1,15 @@
 from mcp.server.fastmcp import FastMCP
 import yfinance as yf
 from dotenv import load_dotenv
-load_dotenv()
 import os
+import sys
+
+# Load environment variables
+load_dotenv()
 
 mcp = FastMCP("Web Search MCP Server")
-print("loaded environment variables",load_dotenv())
+# Use stderr for logging to avoid breaking JSON-RPC on stdout
+print("loaded environment variables", file=sys.stderr, flush=True)
 
 @mcp.tool()
 def web_search(query: str) -> dict:

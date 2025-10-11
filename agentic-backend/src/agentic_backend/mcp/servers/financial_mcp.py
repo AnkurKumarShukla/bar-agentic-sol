@@ -159,5 +159,7 @@ def get_options_chain(ticker_symbol: str, expiry_date: str) -> dict:
 
 # --- Run MCP Server ---
 if __name__ == "__main__":
-    print("[SERVER] Starting Financial MCP...", flush=True)
+    # Use stderr for logging to avoid breaking JSON-RPC on stdout
+    import sys
+    print("[SERVER] Starting Financial MCP...", file=sys.stderr, flush=True)
     mcp.run()

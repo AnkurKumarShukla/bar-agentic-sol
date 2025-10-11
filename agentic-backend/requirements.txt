@@ -15,3 +15,5 @@ pydantic==2.11.7
 fastmcp
 langchain-mcp-adapters
 langgraph
+psycopg[binary,pool]
+langgraph-checkpoint-postgres
