@@ -77,7 +77,7 @@ Respond strictly in JSON with keys: selected_agent, task, reasoning.
     if selected_agent == "FINISH":
         # Generate comprehensive final response based on all collected context
         final_response_prompt = f"""
-You are the Supervisor AI finalizing the response to the user.
+Act like experience financial advisor, response to the user.You have agents response who worked as per your guidence. 
 
 User's original query: {state.user_query}
 

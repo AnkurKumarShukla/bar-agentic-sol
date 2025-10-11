@@ -63,9 +63,9 @@ async def run_sync(state: SupervisorState, thread_id: str):
     Execute the graph step-by-step and yield intermediate states.
     """
     config = {"configurable": {"thread_id": thread_id}}
-    print("=============================")
-    print(checkpointer.get_tuple(config))
-    print("==============================")
+    # print("=============================")
+    # print(checkpointer.get_tuple(config))
+    # print("==============================")
     app = build_graph()
     final_state = None
     
