@@ -6,6 +6,7 @@ from .config import settings
 # from .api.routes import router as api_router
 from .api.ws_routes import router as ws_router
 from .services.orchestrator import build_graph
+from fastapi.middleware.cors import CORSMiddleware
 
 
 
@@ -38,6 +39,13 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
     # app.include_router(api_router, prefix="/v1")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Allow all origins
+        allow_credentials=True,
+        allow_methods=["*"],  # Allow all HTTP methods
+        allow_headers=["*"],  # Allow all headers
+    )
     app.include_router(ws_router)  # WebSocket routes don't need prefix
     return app
 
