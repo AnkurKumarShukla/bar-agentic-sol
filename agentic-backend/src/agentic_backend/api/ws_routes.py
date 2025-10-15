@@ -78,9 +78,11 @@ async def chat_endpoint(websocket: WebSocket):
 
             # Track only the final state
             final_state = None
-
+            kwargs={
+                "user_id":user_id,
+            }
             try:
-                async for chunk in run_sync(incoming_state, thread_id=thread_id):
+                async for chunk in run_sync(incoming_state, thread_id=thread_id, **kwargs):
                     chunk_data = serialize_state(chunk)
 
                     # Keep updating final_state (last one will have everything)

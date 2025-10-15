@@ -58,10 +58,14 @@ def build_graph():
     return _app
 
 
-async def run_sync(state: SupervisorState, thread_id: str):
+async def run_sync(state: SupervisorState, thread_id: str,**kwargs):
     """
     Execute the graph step-by-step and yield intermediate states.
+    To fetch user_id : 
+    ``` user_id=kwargs.get("user_id")```
     """
+    print(kwargs.get("user_id"))
+
     config = {"configurable": {"thread_id": thread_id}}
     # print("=============================")
     # print(checkpointer.get_tuple(config))
