@@ -129,8 +129,8 @@ async def chat_endpoint(websocket: WebSocket):
                 update_thread_memory(
                     user_id=user_id,
                     thread_id=thread_id,
-                    request_summary=f"User asked: {user_message}",
-                    response_summary=f"Assistant responded: {final_output or 'Processing...'}",
+                    request_summary=f"{user_message}",
+                    response_summary=f"{final_output or 'Processing...'}",
                     conversation_entry=conversation_entry
                 )
 
