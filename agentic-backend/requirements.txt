@@ -17,3 +17,8 @@ langchain-mcp-adapters
 langgraph
 psycopg[binary,pool]
 langgraph-checkpoint-postgres
+langfuse==3.6.2
+ragas==0.3.2
+redis==6.4.0
+deepeval==3.4.3
+rq==2.6.0

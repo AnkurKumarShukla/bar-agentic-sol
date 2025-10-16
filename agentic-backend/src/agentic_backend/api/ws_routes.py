@@ -80,6 +80,7 @@ async def chat_endpoint(websocket: WebSocket):
             final_state = None
             kwargs={
                 "user_id":user_id,
+                "dataset": msg.get("dataset","")
             }
             try:
                 async for chunk in run_sync(incoming_state, thread_id=thread_id, **kwargs):
@@ -155,7 +156,7 @@ async def chat_endpoint(websocket: WebSocket):
 # Dummy user data
 users = [
     {
-        "id": 0,
+        "id": "1",
         "name": "Alice Johnson",
         "age": 32,
         "sector_preference": "Technology",
@@ -170,7 +171,7 @@ users = [
         "Exchange": "LSE",
     },
     {
-        "id": 1,
+        "id": "2",
         "name": "Bob Smith",
         "age": 45,
         "sector_preference": "Healthcare",
@@ -185,7 +186,7 @@ users = [
         "Exchange": "LSE",
     },
     {
-        "id": 2,
+        "id": "3",
         "name": "Charlie Brown",
         "age": 28,
         "sector_preference": "Energy",
