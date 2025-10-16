@@ -155,7 +155,7 @@ async def chat_endpoint(websocket: WebSocket):
 # Dummy user data
 users = [
     {
-        "id": 0,
+        "id": 1,
         "name": "Alice Johnson",
         "age": 32,
         "sector_preference": "Technology",
@@ -170,7 +170,7 @@ users = [
         "Exchange": "LSE",
     },
     {
-        "id": 1,
+        "id": 3,
         "name": "Bob Smith",
         "age": 45,
         "sector_preference": "Healthcare",
@@ -301,3 +301,95 @@ async def delete_thread(user_id: str, thread_id: str):
     from ..services.persistence import clear_thread_memory
     clear_thread_memory(user_id, thread_id)
     return {"status": "deleted", "user_id": user_id, "thread_id": thread_id}
+
+
+@router.get("/threads/{user_id}/{thread_id}/report")
+async def generate_thread_report(user_id: str, thread_id: str):
+    """Generate a markdown report for a specific thread using LLM."""
+    from ..services.persistence import get_thread_memory
+    from langchain.chat_models import init_chat_model
+    from dotenv import load_dotenv, find_dotenv
+
+    load_dotenv(find_dotenv())
+
+    # Get conversation history
+    memory = get_thread_memory(user_id, thread_id)
+    if not memory:
+        return {"error": "Thread not found"}
+
+    # Extract conversation entries
+    conversation_history = memory.get("raw_conversation", [])
+    if not conversation_history:
+        return {"error": "No conversation history found for this thread"}
+
+    # Build context from conversation history
+    conversation_text = ""
+    for idx, entry in enumerate(conversation_history, 1):
+        user_query = entry.get("user_query", "")
+        final_response = entry.get("final_response", "")
+        conversation_text += f"\n### Exchange {idx}\n**User Query:** {user_query}\n\n**Response:** {final_response}\n"
+
+    # Initialize LLM
+    llm = init_chat_model("openai:gpt-4o-mini")
+
+    # Create prompt for report generation
+    report_prompt = f"""
+You are a professional financial report writer. Generate a comprehensive markdown report based on the following conversation history between a user and a financial advisory system.
+
+Thread ID: {thread_id}
+User ID: {user_id}
+
+Conversation History:
+{conversation_text}
+
+Generate a well-structured markdown report that includes:
+1. **Executive Summary**: Brief overview of the conversation and key topics discussed
+2. **Key Queries and Insights**: Summarize each major query and the insights provided
+3. **Financial Recommendations**: Consolidate any recommendations or advice given
+4. **Data Points**: List important financial metrics, stock prices, or data mentioned
+5. **Action Items**: Any suggested actions or next steps for the user
+6. **Conclusion**: Final summary and overall assessment
+
+Requirements:
+- Use proper markdown formatting (headers, lists, bold, italic, tables if appropriate)
+- Be concise but comprehensive
+- Focus on financial insights and actionable information
+- Use professional language
+- Structure the report logically
+- Return ONLY plain markdown content without any code fence markers (no ```markdown, no ```, no triple backticks)
+- Do not wrap the markdown in code blocks
+
+Generate the markdown report now:
+"""
+
+    # Generate report using LLM
+    response = llm.invoke(report_prompt)
+
+    # Extract markdown content
+    if hasattr(response, "content"):
+        markdown_report = response.content
+
+    # Remove markdown code fence markers if present
+    markdown_report = markdown_report.strip()
+    # Remove opening fence (```markdown, ```md, or ```)
+    if markdown_report.startswith("```"):
+        # Remove the backticks and any language identifier
+        lines = markdown_report.split("\n")
+        lines = lines[1:]  # Remove first line with opening fence
+        markdown_report = "\n".join(lines)
+
+    # Remove closing fence (```)
+    if markdown_report.endswith("```"):
+        lines = markdown_report.split("\n")
+        lines = lines[:-1]  # Remove last line with closing fence
+        markdown_report = "\n".join(lines)
+
+    markdown_report = markdown_report.strip()
+
+    # Return strict markdown
+    return {
+        "user_id": user_id,
+        "thread_id": thread_id,
+        "report": markdown_report,
+        "format": "markdown"
+    }
