@@ -7,6 +7,7 @@ from fastapi.encoders import jsonable_encoder
 from typing import List, Dict
 import asyncio
 import ast
+from ..utils.state_citation import collect_citations
 router = APIRouter()
 from datetime import datetime
 
@@ -121,10 +122,12 @@ async def chat_endpoint(websocket: WebSocket):
                 final_output = state_obj.get("final_output") if isinstance(state_obj, dict) else getattr(state_obj, "final_output", None)
 
                 # Save complete conversation turn with final state (which includes full execution)
+                citation=list(set(collect_citations(final_state)))
                 conversation_entry = {
                     "user_query": user_message,
                     "final_state": final_state,  # Complete state with all decisions, agent_states, context
                     "final_response": final_output or "Processing...",
+                    "citation":citation,
                 }
                 
                 # Update memory with summaries and raw conversation
