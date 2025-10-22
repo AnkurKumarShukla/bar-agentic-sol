@@ -74,11 +74,12 @@ def update_thread_memory(
         conversation_entry: Single conversation turn to append to raw_conversation
     """
     db = _load_memory_db()
-
+    print(db)
     # Initialize user if not exists
+    print(user_id not in db)
     if user_id not in db:
         db[user_id] = {}
-
+    
     # Initialize thread if not exists
     if thread_id not in db[user_id]:
         db[user_id][thread_id] = {

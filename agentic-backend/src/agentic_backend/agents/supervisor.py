@@ -4,7 +4,8 @@ from ..models.state_models import *
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 from langchain.chat_models import init_chat_model
-llm=init_chat_model("openai:gpt-4o-mini")
+llm=init_chat_model("openai:gpt-4o")
+from ..api.users import get_user
 
 def supervisor_node(state: SupervisorState) -> SupervisorState:
     """Supervisor decides the next agent + task based on state so far."""
@@ -13,7 +14,8 @@ def supervisor_node(state: SupervisorState) -> SupervisorState:
 
     system_prompt = f"""
 You are the Supervisor AI, orchestrating agents for investment research.
-
+Consifer this user detail for every querry strictly 
+Here is the user or client  detail : {str(get_user(state.user_detail))}
 Rules:
 - Never call multiple agents in parallel.
 - always analyse context first thoroughly
@@ -45,6 +47,7 @@ Decision Task:
 1. Decide is agent is required to answer the querry . If yes then Select the next agent (choose from: 'finance_agent', 'websearch_agent', 'news_sentiment_agent', or FINISH). Else answer form previous context if its sufficient.
 2. Specify the exact task they should perform.
 3. Provide reasoning for your choice.
+
 
 Respond strictly in JSON with keys: selected_agent, task, reasoning.
 """

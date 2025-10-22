@@ -66,15 +66,17 @@ async def chat_endpoint(websocket: WebSocket):
             print(f"Received message for thread {thread_id}: {user_message}")
 
             # Load existing memory for this thread
+            print("==========================================",type(thread_id),type(user_id))
             memory = get_thread_memory(user_id, thread_id)
-
+            print("=============================================================",memory)
             # Create state with memory context
             incoming_state = SupervisorState(
                 user_query=user_message,
                 request_summary=memory["request_summary"] if memory else None,
-                response_summary=memory["response_summary"] if memory else None
+                response_summary=memory["response_summary"] if memory else None,
+                user_detail=user_id,
             )
-            print(incoming_state)
+            # print(incoming_state)
 
             # Track only the final state
             final_state = None
@@ -124,7 +126,7 @@ async def chat_endpoint(websocket: WebSocket):
                     "final_state": final_state,  # Complete state with all decisions, agent_states, context
                     "final_response": final_output or "Processing...",
                 }
-
+                
                 # Update memory with summaries and raw conversation
                 update_thread_memory(
                     user_id=user_id,
@@ -155,7 +157,7 @@ async def chat_endpoint(websocket: WebSocket):
 # Dummy user data
 users = [
     {
-        "id": 1,
+        "id": "1",
         "name": "Alice Johnson",
         "age": 32,
         "sector_preference": "Technology",
@@ -170,7 +172,7 @@ users = [
         "Exchange": "LSE",
     },
     {
-        "id": 3,
+        "id": "3",
         "name": "Bob Smith",
         "age": 45,
         "sector_preference": "Healthcare",
@@ -185,7 +187,7 @@ users = [
         "Exchange": "LSE",
     },
     {
-        "id": 2,
+        "id": "2",
         "name": "Charlie Brown",
         "age": 28,
         "sector_preference": "Energy",
