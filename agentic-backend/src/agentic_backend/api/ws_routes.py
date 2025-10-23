@@ -143,7 +143,8 @@ async def chat_endpoint(websocket: WebSocket):
             try:
                 await websocket.send_json({
                     "type": "final",
-                    "thread_id": thread_id
+                    "thread_id": thread_id,
+                    "citation":citation
                 })
             except Exception:
                 # WebSocket might already be closed
