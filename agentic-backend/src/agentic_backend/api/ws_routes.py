@@ -10,6 +10,11 @@ import ast
 from ..utils.state_citation import collect_citations
 router = APIRouter()
 from datetime import datetime
+from dotenv import load_dotenv, find_dotenv
+import os
+load_dotenv(find_dotenv())
+
+api_key=os.getenv("OPENAI_API_KEY")
 
 def serialize_state(obj):
     """
@@ -50,6 +55,23 @@ def serialize_state(obj):
     except:
         return None
 
+
+from openai import AsyncOpenAI
+client = AsyncOpenAI(api_key=api_key)
+
+async def call_llm_for_diagram(prompt: str) -> str:
+    """
+    Generates structured diagram JSON using LLM.
+    """
+    response = await client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "system", "content": "You are a precise data visualization generator."},
+                  {"role": "user", "content": prompt}],
+        temperature=0.3,
+        max_tokens=500
+    )
+
+    return response.choices[0].message.content.strip()
 
 import traceback
 @router.websocket("/ws/chat")
@@ -120,7 +142,79 @@ async def chat_endpoint(websocket: WebSocket):
                 # Extract final output from the nested state structure
                 state_obj = final_state.get("supervisor") if isinstance(final_state, dict) else final_state
                 final_output = state_obj.get("final_output") if isinstance(state_obj, dict) else getattr(state_obj, "final_output", None)
+                tool_response = state_obj.get("tool_response") if isinstance(state_obj, dict) else getattr(state_obj, "tool_response", None)
 
+                diagram_prompt = f"""
+You are a data visualization expert.
+
+Based on the conversation below, generate up to three meaningful charts that summarize or compare key insights.
+
+Conversation Context:
+- User query: {user_message}
+- Tool response: {tool_response}
+- Final response: {final_output}
+
+Output Rules:
+1. Return STRICT JSON (no markdown, no explanations) → an array of diagram objects.
+2. Each diagram object must include:
+   - "diagram_name": short, human-readable title describing what the chart shows.
+     → If possible, include relevant units in parentheses or description (e.g., "in USD", "in %", "in Millions").
+   - "diagram_type": one of "pie", "bar", or "line".
+   - "data": array of points.
+
+🟢 PIE chart format:
+{{
+  "diagram_name": "Market Share Distribution (in %)",
+  "diagram_type": "pie",
+  "data": [
+    {{ "name": "Segment A", "value": 40 }},
+    {{ "name": "Segment B", "value": 60 }}
+  ]
+}}
+
+🟢 BAR or LINE chart format:
+{{
+  "diagram_name": "Quarterly Revenue Comparison (in USD Millions)",
+  "diagram_type": "bar" or "line",
+  "data": [
+    {{
+      "x_axis": "X-axis label (e.g., Company, Month, Region)",
+      "revenue": <numeric_value_1, if relevant>,
+      "profit": <numeric_value_2, optional>,
+      "growth_rate": <numeric_value_3, optional>
+    }},
+    ...
+  ]
+}}
+
+Important:
+- Always use "x_axis" for X-axis values.
+- Use descriptive Y-axis field names matching real metrics (e.g., "revenue", "net_income", "stock_price", "eps", "profit_margin").
+- If the data involves money, mention currency or units in the diagram_name (e.g., "in USD" or "in GBP Millions").
+- If percentages, include "(in %)".
+- If counts or quantities, clarify units (e.g., "in Thousands of Units").
+- Choose chart types intelligently:
+  • PIE → for composition/distribution.
+  • BAR → for comparisons.
+  • LINE → for trends or changes over time.
+- Return only valid JSON array. No markdown, comments, or extra text.
+"""
+
+
+
+                # Call LLM for multiple diagrams
+                diagram_json = await call_llm_for_diagram(diagram_prompt)
+                import json
+                try:
+                    diagrams = json.loads(diagram_json)
+                    if isinstance(diagrams, dict):  # Handle single diagram mistakenly returned
+                        diagrams = [diagrams]
+                except Exception:
+                    diagrams = [{
+                        "diagram_name": "Invalid JSON",
+                        "diagram_type": "none",
+                        "data": []
+                    }]
                 # Save complete conversation turn with final state (which includes full execution)
                 citation=list(set(collect_citations(final_state)))
                 conversation_entry = {
@@ -128,6 +222,7 @@ async def chat_endpoint(websocket: WebSocket):
                     "final_state": final_state,  # Complete state with all decisions, agent_states, context
                     "final_response": final_output or "Processing...",
                     "citation":citation,
+                    "diagram":diagrams
                 }
                 
                 # Update memory with summaries and raw conversation
@@ -144,7 +239,8 @@ async def chat_endpoint(websocket: WebSocket):
                 await websocket.send_json({
                     "type": "final",
                     "thread_id": thread_id,
-                    "citation":citation
+                    "citation":citation,
+                    "diagram":diagrams,
                 })
             except Exception:
                 # WebSocket might already be closed
