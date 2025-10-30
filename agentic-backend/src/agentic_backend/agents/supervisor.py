@@ -103,6 +103,7 @@ Guidelines:
 - Provide specific data points (stock prices, percentages, sentiment scores, etc.)
 - Structure the response logically with proper formatting
 - Be concise but complete
+- Add tables (markdown) where ever required and necessary to have clarity .
 - If multiple items were requested, address each one
 - Include relevant context and insights
 - Do not mention agent names or internal processes
