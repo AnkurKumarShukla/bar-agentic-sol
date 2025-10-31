@@ -147,11 +147,11 @@ async def chat_endpoint(websocket: WebSocket):
                 diagram_prompt = f"""
 You are a data visualization expert.
 
-Based on the conversation below, generate up to three meaningful charts that summarize or compare key insights.
+Based on the conversation below, generate up to three meaningful charts (only if it is required else no) that summarize or compare key insights.
+Return diagram only when it is required . No need to add diagram uncessary. return [] nothing if there is not needed 
 
 Conversation Context:
 - User query: {user_message}
-- Tool response: {tool_response}
 - Final response: {final_output}
 
 Output Rules:
@@ -161,6 +161,8 @@ Output Rules:
      → If possible, include relevant units in parentheses or description (e.g., "in USD", "in %", "in Millions").
    - "diagram_type": one of "pie", "bar", or "line".
    - "data": array of points.
+3. Return diagram only when it is required . No need to add diagram uncessary. return [] nothing if there is not needed 
+
 
 🟢 PIE chart format:
 {{
@@ -193,10 +195,7 @@ Important:
 - If the data involves money, mention currency or units in the diagram_name (e.g., "in USD" or "in GBP Millions").
 - If percentages, include "(in %)".
 - If counts or quantities, clarify units (e.g., "in Thousands of Units").
-- Choose chart types intelligently:
-  • PIE → for composition/distribution.
-  • BAR → for comparisons.
-  • LINE → for trends or changes over time.
+- Choose chart types intelligently
 - Return only valid JSON array. No markdown, comments, or extra text.
 """
 
