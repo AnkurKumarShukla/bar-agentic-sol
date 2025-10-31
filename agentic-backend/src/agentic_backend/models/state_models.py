@@ -28,6 +28,7 @@ class SupervisorState(BaseModel):
     decisions: List[SupervisorDecision] = Field(default_factory=list)
     agent_states: List[AgentState] = Field(default_factory=list)  # Changed to flat array
     final_output: Optional[str] = None
+    user_detail:str
 
     def add_decision(self, step: int, agent: str, reasoning: str, task: str):
         d = SupervisorDecision(step=step, selected_agent=agent, reasoning=reasoning, task=task)

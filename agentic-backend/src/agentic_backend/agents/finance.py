@@ -40,7 +40,7 @@ context so far is : {str(state.context)}
 - analyse context and past decisions to avoid redundant calls.
 Remember, your goal is to provide accurate, insightful financial analysis to
 help users make informed decisions. Always maintain a professional and objective tone in your responses.
-For stocks in India as suffics to ticker symbol  as '.NS' for NSE   and '.BO' for BSE
+for stock in britain or UK use '.L' at the end of ticker value . 
 
 give respose what tool to call and get result from that tool. Just do what you can do .
 """
