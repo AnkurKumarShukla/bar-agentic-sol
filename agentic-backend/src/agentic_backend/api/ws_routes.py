@@ -147,11 +147,11 @@ async def chat_endpoint(websocket: WebSocket):
                 diagram_prompt = f"""
 You are a data visualization expert.
 
-Based on the conversation below, generate up to three meaningful charts (only if it is required else no) that summarize or compare key insights.
-Return diagram only when it is required . No need to add diagram uncessary. return [] nothing if there is not needed 
+Based on the conversation below, make meaningful charts (either 1 or 2 or 3 ( max ) ) (only if it is required else no).
 
 Conversation Context:
 - User query: {user_message}
+- tool response : {tool_response}
 - Final response: {final_output}
 
 Output Rules:
@@ -160,17 +160,18 @@ Output Rules:
    - "diagram_name": short, human-readable title describing what the chart shows.
      → If possible, include relevant units in parentheses or description (e.g., "in USD", "in %", "in Millions").
    - "diagram_type": one of "pie", "bar", or "line".
-   - "data": array of points.
-3. Return diagram only when it is required . No need to add diagram uncessary. return [] nothing if there is not needed 
+   - "data": array of points.provide label where every necessary
+3. Return diagram only when it is required . 
 
 
+Use Conversation Context to make chart or diagram , add valid label where every necessay 
 🟢 PIE chart format:
 {{
   "diagram_name": "Market Share Distribution (in %)",
   "diagram_type": "pie",
   "data": [
-    {{ "name": "Segment A", "value": 40 }},
-    {{ "name": "Segment B", "value": 60 }}
+    {{ "name": "<<label1>> ", "value": 40 }},
+    {{ "name": "<<label2>>", "value": 60 }}
   ]
 }}
 
@@ -190,7 +191,6 @@ Output Rules:
 }}
 
 Important:
-- Always use "x_axis" for X-axis values.
 - Use descriptive Y-axis field names matching real metrics (e.g., "revenue", "net_income", "stock_price", "eps", "profit_margin").
 - If the data involves money, mention currency or units in the diagram_name (e.g., "in USD" or "in GBP Millions").
 - If percentages, include "(in %)".
