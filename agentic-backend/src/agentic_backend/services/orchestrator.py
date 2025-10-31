@@ -10,12 +10,17 @@ from langfuse.langchain import CallbackHandler
 from langfuse import get_client
 import sys
 import os
+import opik
+from opik import track
+from opik.integrations.langchain import OpikTracer
 from dotenv import load_dotenv
+
 # Global singletons
 checkpointer = InMemorySaver()
 load_dotenv()
 langfuse = get_client()
 langfuse_handler = CallbackHandler()
+opik.configure(use_local=False)
 
 _graph: StateGraph = None
 _app = None
@@ -38,7 +43,7 @@ def build_graph():
     """
     Build and cache the graph once, using the persistent checkpointer.
     """
-    global  _graph, _app
+    global _graph, _app
     if _app is None:
         g = StateGraph(SupervisorState)
         g.add_node("supervisor", supervisor_node)
@@ -66,33 +71,53 @@ def build_graph():
     return _app
 
 
-async def run_sync(state: SupervisorState, thread_id: str,**kwargs):
+# @track(name="langgraph_supervisor_execution")
+async def run_sync(state: SupervisorState, thread_id: str, **kwargs):
     """
     Execute the graph step-by-step and yield intermediate states.
-
     """
     user_id = kwargs.get("user_id")
     dataset = kwargs.get("dataset")
 
-    config = {"configurable": {"thread_id": thread_id}, "callbacks": [langfuse_handler], "metadata": {
-            "langfuse_user_id": user_id,
-    },}
-    # print("=============================")
-    # print(checkpointer.get_tuple(config))
-    # print("==============================")
     app = build_graph()
     final_state = None
     
+    # Create OpikTracer for LangChain integration
+    opik_tracer = OpikTracer(graph=app.get_graph(xray=True))
+    # Calling LangGraph stream or invoke functions
+    
+    
+    config = {
+        "configurable": {"thread_id": thread_id}, 
+        "callbacks": [langfuse_handler, opik_tracer], 
+        "metadata": {
+            "langfuse_user_id": user_id,
+        },
+    }
 
     async for s in app.astream(state, config):
         yield s
         final_state = s
+    
     try:
+        # Get Langfuse trace ID
         trace_id = langfuse_handler.last_trace_id
+        
+        
+        traces = opik_tracer.created_traces()
+        opik_trace_id = [trace.id for trace in traces][0]
+        print("opik traceids =============",[trace.id for trace in traces])
+        # Flush Opik traces
+        opik_tracer.flush()
+        
+        # Flush Langfuse
         langfuse_handler.client.flush()
         print(f"Flushed trace {trace_id} to Langfuse.")
     except Exception as e:
-        print(f"Warning: could not flush Langfuse data: {e}")
+        print(f"Warning: could not flush tracing data: {e}")
+        import traceback
+        traceback.print_exc()
+    
     # Get absolute path to repo/evaluation
     evaluation_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../evaluation"))
     # Add to sys.path if not already present
@@ -101,8 +126,4 @@ async def run_sync(state: SupervisorState, thread_id: str,**kwargs):
 
     # Now import the module
     from enqueue_job import enqueue_evaluation
-    enqueue_evaluation(trace_id,dataset)
-
-
-
-
+    enqueue_evaluation(trace_id, dataset, opik_trace_id)

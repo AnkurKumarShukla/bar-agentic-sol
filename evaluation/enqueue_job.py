@@ -22,7 +22,7 @@ q = Queue("evaluation", connection=redis_conn) #evaluation - queue name
 failed_jobs = []
 
 # For pushing jobs to evaluation queue
-def enqueue_evaluation(trace_id: str,dataset: str):
+def enqueue_evaluation(trace_id: str,dataset: str, opik_trace_id: str = None):
     jobs = []
     print(f"Enqueuing evaluation for trace_id: {trace_id} with dataset: {dataset}")
     if dataset=="golden_data":
@@ -31,9 +31,9 @@ def enqueue_evaluation(trace_id: str,dataset: str):
         try:
             time.sleep(15)
             # First evaluation function ragas
-            jobs.append(q.enqueue(evaluate_trace_ragas, trace_id))
+            # jobs.append(q.enqueue(evaluate_trace_ragas, trace_id))
             # Second evaluation function deepeval
-            jobs.append(q.enqueue(evaluate_trace_deepeval, trace_id))
+            jobs.append(q.enqueue(evaluate_trace_deepeval, trace_id, opik_trace_id))
         except Exception as e:
             print(f"Skipping trace_id {trace_id} due to error: {e}")
             failed_jobs.append(trace_id)

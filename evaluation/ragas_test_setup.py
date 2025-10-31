@@ -8,7 +8,7 @@ from ragas.messages import HumanMessage as RHMessage, AIMessage as RAMessage
 from ragas.messages import ToolCall
 from ragas import SingleTurnSample
 from ragas.metrics import AspectCritic
-from helper import infer_reference
+from helper import generate_reference
 
 # Evaluation function for RAGAS
 def evaluate_trace_ragas(trace_id):
@@ -16,7 +16,7 @@ def evaluate_trace_ragas(trace_id):
     predictions = get_langfuse_response(trace_id)  # <-- this returns a LIST of trace dicts
     samples = []
     topic_adherence_metric = TopicAdherenceScore(mode="recall")
-    multi_turn_metrics = [ToolCallAccuracy(), AgentGoalAccuracyWithoutReference(), topic_adherence_metric]
+    multi_turn_metrics = [ToolCallAccuracy(), AgentGoalAccuracyWithReference(), topic_adherence_metric]
    
     for trace in predictions:
         agent_references = {}
@@ -32,7 +32,8 @@ def evaluate_trace_ragas(trace_id):
             print(f"⚡ Evaluating {agent_name}...")
 
             # Infer reference for this agent using its input and output
-            agent_reference = infer_reference(agent_name, agent_input)
+            print(f"⚡ Generating reference for {agent_name}...")
+            agent_reference = generate_reference(agent_name, agent_input)
             print(f"Agent {agent_name} reference:", agent_reference)
 
             # Store agent reference for later use
