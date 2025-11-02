@@ -64,10 +64,10 @@ async def call_llm_for_diagram(prompt: str) -> str:
     Generates structured diagram JSON using LLM.
     """
     response = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "system", "content": "You are a precise data visualization generator."},
+        model="gpt-4o",
+        messages=[{"role": "system", "content": "You are a financial expert in making charts which is useful in making good financial decission. Give meaningfull details for charts "},
                   {"role": "user", "content": prompt}],
-        temperature=0.3,
+        temperature=0.1,
         max_tokens=500
     )
 
@@ -147,7 +147,7 @@ async def chat_endpoint(websocket: WebSocket):
                 diagram_prompt = f"""
 You are a data visualization expert.
 
-Based on the conversation below, make meaningful charts (either 1 or 2 or 3 ( max ) ) (only if it is required else no).
+Based on the conversation below, make meaningful charts (either 1 or 2 or 3 ( max ) )
 
 Conversation Context:
 - User query: {user_message}
