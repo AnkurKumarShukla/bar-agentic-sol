@@ -17,7 +17,7 @@ redis_conn = redis.Redis(
     decode_responses=False
 )
 
-q = Queue("evaluation", connection=redis_conn) #evaluation - queue name
+q = Queue("evaluation", connection=redis_conn, default_timeout=600) #evaluation - queue name
 
 failed_jobs = []
 

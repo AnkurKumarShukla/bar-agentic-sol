@@ -496,3 +496,219 @@ Generate the markdown report now:
         "report": markdown_report,
         "format": "markdown"
     }
+#==========================for pdf summary===================================================
+
+# from fastapi import UploadFile, File, Form, HTTPException
+# from fastapi.responses import JSONResponse
+# from PyPDF2 import PdfReader
+# import io
+# import os
+# import asyncio
+# from concurrent.futures import ThreadPoolExecutor
+# from openai import AsyncOpenAI
+
+# # ThreadPool to avoid blocking the event loop
+# executor = ThreadPoolExecutor(max_workers=4)
+
+# # Initialize OpenAI client (async)
+# pdf_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+# def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
+#     """Extracts text from uploaded PDF."""
+#     reader = PdfReader(io.BytesIO(pdf_bytes))
+#     text = []
+#     for page in reader.pages:
+#         page_text = page.extract_text()
+#         if page_text:
+#             text.append(page_text)
+#     return "\n".join(text)
+
+
+# def chunk_text(text: str, max_chars: int = 3000):
+#     """Splits text into smaller chunks for summarization."""
+#     start = 0
+#     while start < len(text):
+#         end = min(start + max_chars, len(text))
+#         yield text[start:end]
+#         start = end
+
+
+# async def summarize_chunk(chunk: str, model: str = "gpt-3.5-turbo"):
+#     """Summarizes a text chunk using OpenAI."""
+#     prompt = f"Summarize the following text in 4-5 concise bullet points:\n\n{chunk}"
+#     response = await pdf_client.chat.completions.create(
+#         model=model,
+#         messages=[
+#             {"role": "system", "content": "You are a concise text summarizer."},
+#             {"role": "user", "content": prompt},
+#         ],
+#         max_tokens=512,
+#         temperature=0.3,
+#     )
+#     return response.choices[0].message.content.strip()
+
+# async def _async_chunk_generator(text: str, model: str, max_chunk_chars: int):
+#     """Helper async generator to process text chunks sequentially."""
+#     for chunk in chunk_text(text, max_chars=max_chunk_chars):
+#         yield await summarize_chunk(chunk, model)
+
+# @router.post("/threads/{user_id}/{thread_id}/summarize")
+# async def summarize_pdf(user_id: str, thread_id: str,
+#                         file: UploadFile = File(...),
+#                         model: str = Form("gpt-3.5-turbo"),
+#                         max_chunk_chars: int = Form(3000)):
+#     """
+#     Upload a PDF and return a summary using LLM.
+#     Splits the text into chunks and summarizes each before combining.
+#     """
+#     print("==========================================inside============================="
+#     )
+#     if file.content_type not in ["application/pdf", "application/octet-stream"]:
+#         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+#     contents = await file.read()
+#     if not contents:
+#         raise HTTPException(status_code=400, detail="Empty file uploaded.")
+
+#     try:
+#         text = extract_text_from_pdf_bytes(contents)
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"PDF extraction failed: {e}")
+
+#     if not text.strip():
+#         raise HTTPException(status_code=422, detail="No readable text found in PDF.")
+
+#     # Summarize chunks
+#     chunk_summaries = []
+#     async for chunk in _async_chunk_generator(text, model, max_chunk_chars):
+#         chunk_summaries.append(chunk)
+
+#     # Combine all summaries into one final summary
+#     combined_text = "\n".join(chunk_summaries)
+#     final_prompt = f"Combine these summaries into a single executive summary:\n\n{combined_text}"
+#     final_summary = await summarize_chunk(final_prompt, model)
+
+#     return JSONResponse(content={
+#         "user_id": user_id,
+#         "thread_id": thread_id,
+#         "chunk_summaries": chunk_summaries,
+#         "final_summary": final_summary
+#     })
+#===========================================================end=======================================
+from fastapi import UploadFile, File, Form, HTTPException
+from fastapi.responses import JSONResponse
+from PyPDF2 import PdfReader
+import io, os, asyncio
+from openai import AsyncOpenAI
+import pinecone
+from uuid import uuid4
+
+
+# Initialize OpenAI client
+pdf_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# Initialize Pinecone
+from pinecone import Pinecone
+pinecone_index=os.getenv("PINECONE_INDEX_NAME")
+pinecone_api_key=os.getenv("PINECONE_API_KEY")
+pc = Pinecone(api_key=pinecone_api_key)
+index = pc.Index(pinecone_index)
+
+# Extract text from PDF
+def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    text = []
+    for page in reader.pages:
+        page_text = page.extract_text()
+        if page_text:
+            text.append(page_text)
+    return "\n".join(text)
+
+# Chunk text
+def chunk_text(text: str, max_chars: int = 3000):
+    start = 0
+    while start < len(text):
+        end = min(start + max_chars, len(text))
+        yield text[start:end]
+        start = end
+
+# Embed text chunk
+async def embed_chunk(chunk: str) -> list[float]:
+    response = await pdf_client.embeddings.create(
+        model="text-embedding-ada-002",
+        input=[chunk]
+    )
+    return response.data[0].embedding
+
+# Summarize chunk
+async def summarize_chunk(chunk: str, model: str = "gpt-3.5-turbo"):
+    prompt = f"Your task is to read and summarize the following financial document into **4–5 concise, insight-rich bullet points**.The goal is to capture all **key insights** without losing critical context or numbers.:\n\n{chunk}"
+    response = await pdf_client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are a concise text summarizer."},
+            {"role": "user", "content": prompt},
+        ],
+        max_tokens=512,
+        temperature=0.3,
+    )
+    return response.choices[0].message.content.strip()
+
+# Main endpoint
+@router.post("/threads/{user_id}/{thread_id}/summarize")
+async def summarize_pdf(user_id: str, thread_id: str,
+                        file: UploadFile = File(...),
+                        model: str = Form("gpt-3.5-turbo"),
+                        max_chunk_chars: int = Form(3000)):
+
+    if file.content_type not in ["application/pdf", "application/octet-stream"]:
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+    contents = await file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="Empty file uploaded.")
+
+    try:
+        text = extract_text_from_pdf_bytes(contents)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF extraction failed: {e}")
+
+    if not text.strip():
+        raise HTTPException(status_code=422, detail="No readable text found in PDF.")
+
+    chunk_summaries = []
+    pinecone_vectors = []
+
+    # Process each chunk
+    for chunk in chunk_text(text, max_chars=max_chunk_chars):
+        summary = await summarize_chunk(chunk, model)
+        embedding = await embed_chunk(chunk)
+
+        chunk_id = str(uuid4())
+        pinecone_vectors.append({
+            "id": chunk_id,
+            "values": embedding,
+            "metadata": {
+                "user_id": user_id,
+                "thread_id": thread_id,
+                "summary": summary
+            }
+        })
+
+        chunk_summaries.append(summary)
+
+    # Upsert to Pinecone
+    index.upsert(vectors=pinecone_vectors)
+
+    # Final summary
+    combined_text = "\n".join(chunk_summaries)
+    final_prompt = f"Combine these summaries into a single executive summary:\n\n{combined_text}"
+    final_summary = await summarize_chunk(final_prompt, model)
+
+    return JSONResponse(content={
+        "user_id": user_id,
+        "thread_id": thread_id,
+        "chunk_summaries": chunk_summaries,
+        "final_summary": final_summary
+    })

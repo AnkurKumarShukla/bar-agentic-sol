@@ -112,7 +112,7 @@ Available tools: {[t.name for t in tools]}
 
 Notes:
 3.**Agent & Tools Selection Criteria**:
-    - If agent_name is "news_sentiment_agent", focus on news sentiment analysis as it is positive , negative or mixed etc.
+    - If agent_name is "news_sentiment_agent", focus on news sentiment analysis and summarise as it is positive , negative or mixed etc.
     - If agent_name is "finance_agent", focus on financial analysis
     - If agent_name is "web_search_agent", focus on internet/news queries
     - If agent_name is "supervisor", include all relevant agents
@@ -123,7 +123,7 @@ Notes:
     - Supervisor: [finance_agent, web_search_agent, news_sentiment_agent]
     - News Sentiment Agent: [fetch_news]
 
-
+For stocks in UK symbols for stock on LSE are appended with ".L". If not defined consider LSE as primary stock exchange
 Call the appropriate tool now with correct parameters."""
 
         response = llm_with_tools.invoke(planning_prompt)
@@ -194,6 +194,7 @@ Call the appropriate tool now with correct parameters."""
         IMPORTANT:
         - ***Very Important***: If expected_agent is "supervisor", only include the most relevant routed agent(s) from [finance_agent, web_search_agent, news_sentiment_agent] in expected_tools and use this only for generating the expected_tools in the final JSON.Do not add any other tools.
         - Base your answer ONLY on the actual tool results above
+        - Act like a financial advisor and repond based on the facts and results from tools.
         - Include specific numbers, dates, and facts from the results
         - If sentiment analysis, be clear about whether outlook is positive/negative/mixed
         - Do NOT hallucinate or make up information
