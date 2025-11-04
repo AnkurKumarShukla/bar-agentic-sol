@@ -604,7 +604,6 @@ from openai import AsyncOpenAI
 import pinecone
 from uuid import uuid4
 
-
 # Initialize OpenAI client
 pdf_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
